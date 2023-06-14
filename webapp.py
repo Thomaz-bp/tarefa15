@@ -2,25 +2,41 @@ from tkinter.tix import COLUMN
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 
 
 st.title('Corridas de Uber em Nova Yorque')
 
 DATE_COLUMN = 'date/time'
-DATA_URL = ('https://github.com/streamlit/demo-uber-nyc-pickups/blob/main/uber-raw-data-sep14.csv.gz')
+DATA_URL = ('https://github.com/streamlit/demo-uber-nyc-pickups/raw/main/uber-raw-data-sep14.csv.gz')
 
-@st.cache_data
-def load_data(nrows):
-    data = pd.read_csv(DATA_URL, nrows=nrows)
-    lowercase = lambda x: str(x).lower()
-    data.rename(lowercase, axis='columns', inplace=True)
-    data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
+@st.cache_resource
+def load_data():
+    path = "uber-raw-data-sep14.csv.gz"
+    if not os.path.isfile(path):
+        path = f"https://github.com/streamlit/demo-uber-nyc-pickups/raw/main/{path}"
+
+    data = pd.read_csv(
+        path,
+        nrows=100000,  # approx. 10% of data
+        names=[
+            "date/time",
+            "lat",
+            "lon",
+        ],  # specify names directly since they don't change
+        skiprows=1,  # don't read header since names specified directly
+        usecols=[0, 1, 2],  # doesn't load last column, constant value "B02512"
+        parse_dates=[
+            "date/time"
+        ],  # set as datetime instead of converting after the fact
+    )
+
     return data
 
 # Create a text element and let the reader know the data is loading.
 data_load_state = st.text('Loading data...')
 # Load 10,000 rows of data into the dataframe.
-data = load_data(10000)
+data = load_data()
 df=data
 # Notify the reader that the data was successfully loaded.
 data_load_state.text("Done! (using st.cache)")
